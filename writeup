@@ -1,0 +1,12 @@
+Lab04: Interrupt Based Scheduling
+<PUT NAMES HERE>
+
+Part 1: 2
+
+Q1. Briefly explain the clock path from start to finish (crystal to SYSCLK), including explanations for all your major register configurations.
+
+Part 2: 3
+
+Q2. Describe how you determined your PWM frequency.
+
+Q3. Describe how you would calculate CCR1 values for motors off, %50, and %100.
