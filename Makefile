@@ -57,7 +57,7 @@ CFLAGS = -O0 -g -Wall -Wextra $(PROCESSOR) $(INCLUDE) $(STFLAGS) -Wl,--gc-sectio
 # the headers, or the source file changes, the dependency file is also
 # rebuilt. This covers all of the necessary dependencies.
 # Jeremy wrote it
-DEPGENFLAGS = -MMD -MP -MT"$@" -MT"$(@:.o=.d)"
+DEPGENFLAGS = -MMD -MP
 
 # Create the objects and dependencies based on the sources
 OBJS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCS:.c=.o))
