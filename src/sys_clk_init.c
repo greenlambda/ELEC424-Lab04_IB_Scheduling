@@ -9,7 +9,7 @@
 
 #include "stm32f10x_conf.h"
 
-ErrorStatus sys_clk_init_72mhz() {
+ErrorStatus sysClkInit72Mhz() {
 	/* Reset the clock system back to reset state. */
 	RCC_DeInit();
 

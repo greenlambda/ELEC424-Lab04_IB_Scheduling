@@ -12,9 +12,15 @@ INCDIR = inc
 BINDIR = bin
 BUILDDIR = build
 SRCDIR = src
+LIBDIR = lib
 LINKER_SCRIPT = linker_script
 
-# Compiler 
+# These are all the local project source files
+SRCS = $(SRCDIR)/scheduling.c $(SRCDIR)/sys_clk_init.c
+LIBS := $(LIBDIR)/lab04_tasks.a
+ELF := $(BINDIR)/scheduling.elf
+
+# Compiler
 CC = arm-none-eabi-gcc
 
 # Particular processor
@@ -31,11 +37,9 @@ STM_DEVICE_PERIPH = /STM32F10x_StdPeriph_Driver/
 STM_LIB_PKG = $(BINDIR)/libstm32f10x.a
 STM_INCLUDES = $(addprefix -I$(STM_LIB), $(STM_CORE) $(STM_DEVICE_CORE) $(STM_DEVICE_PERIPH)/inc/) -include $(INCDIR)/stm32f10x_conf.h
 STM_SOURCES_ASM = $(STM_LIB)/$(STM_DEVICE_CORE)/startup/gcc_ride7/startup_stm32f10x_md.s
-STM_SOURCES_C = $(STM_LIB)/$(STM_DEVICE_CORE)/system_stm32f10x.c \
-	$(addprefix $(STM_LIB)/$(STM_DEVICE_PERIPH)/src/, stm32f10x_gpio.c stm32f10x_rcc.c stm32f10x_tim.c misc.c)
+STM_SOURCES_C = $(addprefix $(STM_LIB)/$(STM_DEVICE_PERIPH)/src/, stm32f10x_flash.c stm32f10x_gpio.c stm32f10x_rcc.c stm32f10x_tim.c misc.c)
 STM_OBJS := $(patsubst $(STM_LIB)/%,$(STM_BUILD_DIR)/%,$(STM_SOURCES_C:.c=.o) $(STM_SOURCES_ASM:.s=.o)) 
 STM_DEPS := $(patsubst $(STM_LIB)/%,$(STM_BUILD_DIR)/%,$(STM_SOURCES_C:.c=.d))
-
 
 # Directories of used header files
 INCLUDE = -I$(INCDIR) $(STM_INCLUDES)
@@ -43,10 +47,9 @@ INCLUDE = -I$(INCDIR) $(STM_INCLUDES)
 # Define the compiler flags
 CFLAGS = -O0 -g -Wall -Wextra $(PROCESSOR) $(INCLUDE) $(STFLAGS) -Wl,--gc-sections -T $(LINKER_SCRIPT)/stm32_flash.ld
 
-SRCS = $(SRCDIR)/blinky.c
+# Create the objects and dependencies based on the sources
 OBJS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCS:.c=.o))
 DEPENDENCIES := $(STM_DEPS) $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SRCS:.c=.d))
-ELF = $(BINDIR)/blinky.elf
 
 # Build all relevant files and create .elf
 all: $(ELF)
@@ -69,7 +72,7 @@ $(STM_LIB_PKG): $(STM_OBJS)
 	ar rcs $@ $^
 
 # Link the program's object files and the libraries together into an executable elf file.
-$(ELF): $(OBJS) $(STM_LIB_PKG)
+$(ELF): $(OBJS) $(LIBS) $(STM_LIB_PKG)
 	$(CC) $(CFLAGS) $^ -o $@
 
 # Program .elf into Crazyflie flash memory via the busblaster
