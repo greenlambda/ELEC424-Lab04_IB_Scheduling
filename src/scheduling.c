@@ -5,7 +5,10 @@
  * Description: A simple task scheduler for varying priority tasks.
  */
 
+#include "scheduling.h"
+
 #include "sys_clk_init.h"
+#include "lab04_tasks.h"
 
 #include "stm32f10x.h"
 #include "stm32f10x_conf.h"
