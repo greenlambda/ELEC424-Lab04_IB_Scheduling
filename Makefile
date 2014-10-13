@@ -45,18 +45,12 @@ STM_DEPS := $(patsubst $(STM_LIB)/%,$(STM_BUILD_DIR)/%,$(STM_SOURCES_C:.c=.d))
 INCLUDE = -I$(INCDIR) $(STM_INCLUDES)
 
 # Define the compiler flags
-CFLAGS = -O0 -g -Wall -Wextra $(PROCESSOR) $(INCLUDE) $(STFLAGS) -Wl,--gc-sections -T $(LINKER_SCRIPT)/stm32_flash.ld
+CFLAGS = -g -Wall -Wextra -Werror $(PROCESSOR) $(INCLUDE) $(STFLAGS) -Wl,--gc-sections -T $(LINKER_SCRIPT)/stm32_flash.ld
 
 # This clever bit of make-fu builds dependency files for each source file so
 # that if the included files for that source file are updated, the object for
 # that file is also rebuilt. This rule generates a coresponding %.d file in
-# the build directory for each source file. These %.d files contain makefile
-# dependency rules which are included at the bottom of this makefile. Even
-# more clever, this rule adds the %.d file as a target in addition to the %.o
-# file for the rule that is generated for each source file, so that if one of
-# the headers, or the source file changes, the dependency file is also
-# rebuilt. This covers all of the necessary dependencies.
-# Jeremy wrote it
+# the build directory for each source file.
 DEPGENFLAGS = -MMD -MP
 
 # Create the objects and dependencies based on the sources

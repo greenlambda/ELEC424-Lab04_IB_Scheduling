@@ -28,7 +28,6 @@ unsigned char refreshSensorData(void);
  * This function takes many cycles to complete. As such, care should be 
  * taken not to block other higher priority functions
  */
-
 unsigned char calculateOrientation(void); 
 
 /* 
