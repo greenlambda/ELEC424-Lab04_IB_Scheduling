@@ -19,8 +19,8 @@ ErrorStatus sysClkInit72Mhz() {
 
     /* Set up some of the basic peripheral clocks to run off SYSCLK */
     RCC_HCLKConfig(RCC_SYSCLK_Div1);
-    RCC_PCLK2Config(RCC_HCLK_Div1);
-    RCC_PCLK1Config(RCC_HCLK_Div1);
+    RCC_PCLK2Config(RCC_HCLK_Div2);
+    RCC_PCLK1Config(RCC_HCLK_Div2);
 
 	/*
 	 * Select the 16 MHz HSE, divided by 2, for the PLL source with a

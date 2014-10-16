@@ -34,12 +34,6 @@ void motorPwmInit() {
 	TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Enable);
 	TIM_OC4Init(TIM3, &outputChannelInit);
 	TIM_OC4PreloadConfig(TIM3, TIM_OCPreload_Enable);
-
-	//TIM_CtrlPWMOutputs(TIM3, ENABLE);
-	//TIM_CtrlPWMOutputs(TIM4, ENABLE);
-
-	//GPIO_PinAFConfig(GPIOD, GPIO_PinSource12, GPIO_AF_TIM4);
-	//GPIO_PinRemapConfig(GPIO_Remap_TIM4, ENABLE);
 }
 
 /*
@@ -60,9 +54,6 @@ static void motorInit() {
 	gpioStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	gpioStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &gpioStructure);
-
-	//GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
-	//GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_SET); /* set bit; LED off */
 }
 
 /*
@@ -204,7 +195,9 @@ static void tickLowPrioTimerInit() {
  * Main function.  Initializes the GPIO, Timers, and
  */
 int main() {
-	sysClkInit72Mhz();
+	if (sysClkInit72Mhz() != SUCCESS) {
+		for (;;) {}
+	}
 	ledsInit();
 	tickHighPrioTimerInit();
 	tickLowPrioTimerInit();
@@ -279,12 +272,12 @@ void TIM2_IRQHandler() {
 			calculateOrientation();
 
 			/* Update the motors */
-			MotorSpeeds newSpeeds;
+			MotorSpeeds newSpeeds = {0, 0, 0, 0};
 			updatePid(&newSpeeds);
-			motorSet(Motor1, newSpeeds.m1);
-			motorSet(Motor2, newSpeeds.m2);
-			motorSet(Motor3, newSpeeds.m3);
-			motorSet(Motor4, newSpeeds.m4);
+			motorSet(Motor1, 25*newSpeeds.m1);
+			motorSet(Motor2, 25*newSpeeds.m2);
+			motorSet(Motor3, 25*newSpeeds.m3);
+			motorSet(Motor4, 25*newSpeeds.m4);
 
 			oneHzCount = 0;
 		}
