@@ -17,11 +17,119 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+void motorPwmInit() {
+	TIM_OCInitTypeDef outputChannelInit;
+	outputChannelInit.TIM_OCMode = TIM_OCMode_PWM1;
+	outputChannelInit.TIM_Pulse = 0; /* Set to 0% */
+	outputChannelInit.TIM_OutputState = TIM_OutputState_Enable;
+	outputChannelInit.TIM_OCPolarity = TIM_OCPolarity_High;
+
+	//Motors 3&4
+	TIM_OC3Init(TIM4, &outputChannelInit);
+	TIM_OC3PreloadConfig(TIM4, TIM_OCPreload_Enable);
+	TIM_OC4Init(TIM4, &outputChannelInit);
+	TIM_OC4PreloadConfig(TIM4, TIM_OCPreload_Enable);
+	//Motors 1&2
+	TIM_OC3Init(TIM3, &outputChannelInit);
+	TIM_OC3PreloadConfig(TIM3, TIM_OCPreload_Enable);
+	TIM_OC4Init(TIM3, &outputChannelInit);
+	TIM_OC4PreloadConfig(TIM3, TIM_OCPreload_Enable);
+
+	//TIM_CtrlPWMOutputs(TIM3, ENABLE);
+	//TIM_CtrlPWMOutputs(TIM4, ENABLE);
+
+	//GPIO_PinAFConfig(GPIOD, GPIO_PinSource12, GPIO_AF_TIM4);
+	//GPIO_PinRemapConfig(GPIO_Remap_TIM4, ENABLE);
+}
+
+/*
+ * Initialize the GPIO which controls the Motors in alternate function mode (through TIM3/4)
+ */
+static void motorInit() {
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOB, ENABLE);
+
+	GPIO_InitTypeDef gpioStructure;
+	gpioStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+	/* Note the 'AF' here */
+	gpioStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	gpioStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &gpioStructure);
+
+	gpioStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_9;
+	/* Note the 'AF' here */
+	gpioStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+	gpioStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &gpioStructure);
+
+	//GPIO_PinRemapConfig(GPIO_PartialRemap_TIM3, ENABLE);
+	//GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_SET); /* set bit; LED off */
+}
+
+/*
+ * Initialize the timer and set the clock to the external oscillator
+ */
+static void motorTimersInit() {
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
+
+	TIM_TimeBaseInitTypeDef timerInitStructure;
+	timerInitStructure.TIM_Prescaler = MOTOR_TIM_PRESCALER;
+	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	timerInitStructure.TIM_Period = MOTOR_TIM_PERIOD;
+	timerInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	timerInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM4, &timerInitStructure);
+	TIM_Cmd(TIM4, ENABLE);
+	//TIM_ITConfig(TIM4, TIM_IT_Update | TIM_IT_CC1 | TIM_IT_CC2, ENABLE);
+
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+	//TIM_TimeBaseInitTypeDef timerInitStructure;
+	timerInitStructure.TIM_Prescaler = MOTOR_TIM_PRESCALER;
+	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	timerInitStructure.TIM_Period = MOTOR_TIM_PERIOD;
+	timerInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	timerInitStructure.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM3, &timerInitStructure);
+	TIM_Cmd(TIM3, ENABLE);
+
+}
+
+/*
+ * Set a motor to be on or off
+ * @param  m : Select the motor to set the state for
+ * 		Can be one of the following values
+ * 		Motor1, Motor2, Motor3, Motor4
+ * @param  s : Select the speed for the motor
+ * 		Can be between 0 and 256
+ */
+void motorSet(MotorEnum m, int duty) {
+	//MULT: preprocessor define -
+	//multiplier to convert speed to units in
+	//terms of the timer period
+	int pulse = duty * MOTOR_MULT;	//pulse width (in ticks) to achieve the
+								//desired duty cycle
+	switch (m)
+	{
+	case Motor1 :
+		MOTOR1_SET_COMPARE(MOTOR1_TIM, pulse);
+		break;
+	case Motor2 :
+		MOTOR2_SET_COMPARE(MOTOR2_TIM, pulse);
+		break;
+	case Motor3 :
+		MOTOR3_SET_COMPARE(MOTOR3_TIM, pulse);
+		break;
+	case Motor4 :
+		MOTOR4_SET_COMPARE(MOTOR4_TIM, pulse);
+		break;
+	}
+}
+
 /*
  * Initialize the GPIO which controls the LED
  */
 static void ledsInit() {
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOB, ENABLE);
 
 	GPIO_InitTypeDef gpioStructure;
 	gpioStructure.GPIO_Pin = GPIO_Pin_5;
@@ -29,7 +137,14 @@ static void ledsInit() {
 	gpioStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOB, &gpioStructure);
 
-	GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_RESET); /* clear bit; LED on */
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_NoJTRST, ENABLE);
+
+	gpioStructure.GPIO_Pin = GPIO_Pin_4;
+	gpioStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	gpioStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &gpioStructure);
+
+	GPIO_WriteBit(GPIOB, GPIO_Pin_4, Bit_RESET);
 }
 
 /*
@@ -85,7 +200,6 @@ static void tickLowPrioTimerInit() {
 	NVIC_Init(&tim2Nvic);
 }
 
-
 /*
  * Main function.  Initializes the GPIO, Timers, and
  */
@@ -94,6 +208,9 @@ int main() {
 	ledsInit();
 	tickHighPrioTimerInit();
 	tickLowPrioTimerInit();
+	motorInit();
+	motorTimersInit();
+	motorPwmInit();
 
 	/* Loop. Forever. */
 	for (;;) {
@@ -129,6 +246,7 @@ void TIM1_UP_IRQHandler() {
 
 /* Low priority tasks, every 500ms */
 void TIM2_IRQHandler() {
+	static unsigned int greenLedState = 0;
 	static unsigned int redLedState = 0;
 	static unsigned int oneHzCount = 0;
 
@@ -136,27 +254,40 @@ void TIM2_IRQHandler() {
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 
-		/* Toggle the red led */
-		if (redLedState) {
+		/* Toggle the green led */
+		if (greenLedState) {
 			GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_RESET);
 		} else {
 			GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_SET);
 		}
 		/* Flip the state for next operation */
-		redLedState = 1 - redLedState;
+		greenLedState = 1 - greenLedState;
 
 		/* Update all the things that need to happen at 1 Hz */
 		oneHzCount++;
 		if (oneHzCount >= 2) {
+			/* Toggle the red led */
+			if (redLedState) {
+				GPIO_WriteBit(GPIOB, GPIO_Pin_4, Bit_RESET);
+			} else {
+				GPIO_WriteBit(GPIOB, GPIO_Pin_4, Bit_SET);
+			}
+			/* Flip the state for next operation */
+			redLedState = 1 - redLedState;
+
 			/* Calculate our orientation. */
 			calculateOrientation();
 
 			/* Update the motors */
 			MotorSpeeds newSpeeds;
 			updatePid(&newSpeeds);
-			/* TODO: Call the set PID functions here. */
+			motorSet(Motor1, newSpeeds.m1);
+			motorSet(Motor2, newSpeeds.m2);
+			motorSet(Motor3, newSpeeds.m3);
+			motorSet(Motor4, newSpeeds.m4);
+
+			oneHzCount = 0;
 		}
 	}
 }
-
 
