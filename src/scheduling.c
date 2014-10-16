@@ -20,7 +20,7 @@
 /*
  * Initialize the GPIO which controls the LED
  */
-static void initLeds() {
+static void ledsInit() {
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 
 	GPIO_InitTypeDef gpioStructure;
@@ -33,62 +33,72 @@ static void initLeds() {
 }
 
 /*
- * Initialize the timer to run at TICK_FREQ Hz (usually about 1000) so that we can be interrupted
- * regularly in order to update the task timers.
+ * Initialize the High Priority Timer to run at 10 ms
  */
-static void initTickTimer() {
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+static void tickHighPrioTimerInit() {
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
 
 	TIM_TimeBaseInitTypeDef timerInitStructure;
-	timerInitStructure.TIM_Prescaler = TIM2_PRESCALER;
+	timerInitStructure.TIM_Prescaler = TIM1_PRESCALER;
 	timerInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	timerInitStructure.TIM_Period = TIM2_PERIOD;
+	timerInitStructure.TIM_Period = TIM1_PERIOD;
 	timerInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	timerInitStructure.TIM_RepetitionCounter = 0;
-	TIM_TimeBaseInit(TIM2, &timerInitStructure);
-	TIM_Cmd(TIM2, ENABLE);
-	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
-}
+	TIM_TimeBaseInit(TIM1, &timerInitStructure);
+	TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);
 
-/*
- * Enable the interrupt for the timer (TIM2)
- */
-static void enableTickTimerInterupt() {
+	TIM_Cmd(TIM1, ENABLE);
+
+	/* Initialize the interrupt for TIM1 */
 	NVIC_InitTypeDef nvicStructure;
-	nvicStructure.NVIC_IRQChannel = TIM2_IRQn;
-	nvicStructure.NVIC_IRQChannelPreemptionPriority = 0;
-	nvicStructure.NVIC_IRQChannelSubPriority = 1;
+	nvicStructure.NVIC_IRQChannel = TIM1_UP_IRQn;
+	nvicStructure.NVIC_IRQChannelPreemptionPriority = TIM1_PRIO;
+	nvicStructure.NVIC_IRQChannelSubPriority = TIM1_SUB_PRIO;
 	nvicStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&nvicStructure);
 }
 
-struct Task_s {
-	DlList queueElem;
-	void (*function)(void);
-	unsigned int priority;
-	unsigned int blockedTimer;
-};
+/*
+ * Initialize the Low Priority Timer to run at 500 ms
+ */
+static void tickLowPrioTimerInit() {
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
+
+	TIM_TimeBaseInitTypeDef tim2Init;
+	tim2Init.TIM_Prescaler = TIM2_PRESCALER;
+	tim2Init.TIM_CounterMode = TIM_CounterMode_Up;
+	tim2Init.TIM_Period = TIM2_PERIOD;
+	tim2Init.TIM_ClockDivision = TIM_CKD_DIV1;
+	tim2Init.TIM_RepetitionCounter = 0;
+	TIM_TimeBaseInit(TIM2, &tim2Init);
+
+	TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);
+
+	TIM_Cmd(TIM2, ENABLE);
+
+	/* Initialize the interrupt for TIM2 */
+	NVIC_InitTypeDef tim2Nvic;
+	tim2Nvic.NVIC_IRQChannel = TIM2_IRQn;
+	tim2Nvic.NVIC_IRQChannelPreemptionPriority = 0;
+	tim2Nvic.NVIC_IRQChannelSubPriority = 1;
+	tim2Nvic.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&tim2Nvic);
+}
+
 
 /*
  * Main function.  Initializes the GPIO, Timers, and
  */
-DlListHead readyTasks;
 int main() {
 	sysClkInit72Mhz();
-	initLeds();
-	initTickTimer();
-	enableTickTimerInterupt();
+	ledsInit();
+	tickHighPrioTimerInit();
+	tickLowPrioTimerInit();
 
 	/* Loop. Forever. */
-	DlList* curTask;
-	dl_list_for_each(curTask, &readyTasks) {
-
-	}
 	for (;;) {
-		if (blockedTimer == 0) {
-			detectEmergency();
-			blockedTimer
-		}
+		/* When we aren't doing stuff in interrupts, run the logger. */
+		logDebugInfo();
 	}
 }
 
@@ -109,78 +119,6 @@ void TIM2_IRQHandler() {
 			GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_SET);
 		stateLED = 1 - stateLED; /* flip the state for next operation */
 	}
-}
-
-
-/*
- * This initializes a doubly linked list so that it is empty
- * (e.g. the head points to itself).
- */
-void dlListInit(DlListHead* head) {
-	head->next = head;
-	head->prev = head;
-}
-
-/*
- * Returns TRUE iff the doubly linked list headed by head is empty. Head can actually be any
- * element in the list, because the list must always contain the head element, so if this is
- * called on anything but the head, the list must not be empty.
- */
-boolean dlListIsEmpty(DlListHead* head) {
-	if (head->next == head && head->prev == head) {
-		return TRUE;
-	} else {
-		return FALSE;
-	}
-}
-
-
-/*
- * Inserts an element before the given point in the doubly linked list.
- */
-void dlListInsertBefore(DlList* toInsert, DlList* dest) {
-	/* Link the new process to the dest. */
-	toInsert->next = dest;
-	toInsert->prev = dest->prev;
-	/* Link the previous process to the new process */
-	dest->prev->next = toInsert;
-	/* Link the next process to the new process */
-	dest->prev = toInsert;
-}
-
-/*
- * Helper function to insert an element to be the first of a list given the head.
- */
-void dlListInsertFirst(DlList* toInsert, DlListHead* head) {
-	dlListInsertBefore(toInsert, head->next);
-}
-
-/*
- * Helper function to insert an element at the end of a list with the given head.
- */
-void dlListAppend(DlList* toInsert, DlListHead* head) {
-	dlListInsertBefore(toInsert, head);
-}
-
-/*
- * Removes the element at the given point from a doubly linked list.
- *
- * Updates the given head if needed.
- */
-void dlListRemove(DlList* toRemove) {
-	/* Skip over the links to this process. */
-	toRemove->prev->next = toRemove->next;
-	toRemove->next->prev = toRemove->prev;
-	/* Null the internal pointers. */
-	toRemove->next = NULL;
-	toRemove->prev = NULL;
-}
-
-/*
- * Helper function to remove the first element of a list given the head.
- */
-void dlListRemoveFirst(DlListHead* head) {
-	dlListRemove(head->next);
 }
 
 
