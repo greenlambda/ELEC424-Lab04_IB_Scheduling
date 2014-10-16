@@ -19,13 +19,13 @@
 #define TIM1_PRESCALER			720
 #define TIM1_PERIOD				((TIM1_FREQ/TIM1_PRESCALER)/HIGH_PRIO_TICK_FREQ)
 #define TIM1_PRIO				1
-#define TIM1_SUB_PRIO			1
+#define TIM1_SUB_PRIO			0
 
 #define TIM2_FREQ				(APB1_FREQ)
 #define TIM2_PRESCALER			36000
 #define TIM2_PERIOD				((TIM2_FREQ/TIM2_PRESCALER)/LOW_PRIO_TICK_FREQ)
 #define TIM2_PRIO				1
-#define TIM2_SUB_PRIO			2
+#define TIM2_SUB_PRIO			1
 
 /* Create a quick boolean type */
 typedef int boolean;

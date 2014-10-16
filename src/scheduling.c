@@ -103,21 +103,59 @@ int main() {
 }
 
 /*
- * Interrupt service routine.
- * Function caller setup in "startup_stm32f10x_md.s"
- *
- * This routine updates the tick timer for each task.
+ * Interrupt service routines.
+ * Function callers setup in "startup_stm32f10x_md.s"
  */
-void TIM2_IRQHandler() {
-	static unsigned char stateLED = 0;
 
+/* High priority tasks */
+void TIM1_UP_IRQHandler() {
+	static unsigned int updateSensorCount = 0;
+
+	/* Clear the interrupt flag. */
+	if (TIM_GetITStatus(TIM1, TIM_IT_Update) != RESET) {
+		TIM_ClearITPendingBit(TIM1, TIM_IT_Update);
+
+		/* Detect and emergency once every 10ms */
+		detectEmergency();
+
+		/* Update the sensors once every 100ms */
+		updateSensorCount++;
+		if (updateSensorCount >= 10) {
+			refreshSensorData();
+			updateSensorCount = 0;
+		}
+	}
+}
+
+/* Low priority tasks, every 500ms */
+void TIM2_IRQHandler() {
+	static unsigned int redLedState = 0;
+	static unsigned int oneHzCount = 0;
+
+	/* Check the interrupt and clear the flag. */
 	if (TIM_GetITStatus(TIM2, TIM_IT_Update) != RESET) {
-		TIM_ClearITPendingBit(TIM2, TIM_IT_Update); /* clear flag */
-		if (stateLED)
+		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
+
+		/* Toggle the red led */
+		if (redLedState) {
 			GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_RESET);
-		else
+		} else {
 			GPIO_WriteBit(GPIOB, GPIO_Pin_5, Bit_SET);
-		stateLED = 1 - stateLED; /* flip the state for next operation */
+		}
+		/* Flip the state for next operation */
+		redLedState = 1 - redLedState;
+
+		/* Update all the things that need to happen at 1 Hz */
+		oneHzCount++;
+		if (oneHzCount >= 2) {
+			/* Calculate our orientation. */
+			calculateOrientation();
+
+			/* Update the motors */
+			MotorSpeeds newSpeeds;
+			updatePid(&newSpeeds);
+			/* TODO: Call the set PID functions here. */
+		}
 	}
 }
 
