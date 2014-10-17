@@ -18,7 +18,7 @@ Our PWM frequency was chosen as 36 kHz because, 1) it's an easy multiple of the 
 
 Q3. Describe how you would calculate CCR1 values for motors off, %50, and %100.
 
-The CCR1 values for each PWM is calculated based on the period frequency (2000 as described above).
+The CCR1 values for each PWM is calculated based on the period frequency (2000 as described above).  For a given duty cycle (0% to 100%), the percentage is multiplied against the period of the PWM frequency.  This gives us the pulse width for which to turn on the motor.  Example calculations are presented below to demonstrate.
 For motors, off, the CCR1 value should be
 (0%/100)*2000 = 0
 For 50%
