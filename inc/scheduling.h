@@ -57,7 +57,7 @@ typedef enum {
 #define MOTOR3_SET_COMPARE(a, b)	TIM_SetCompare4(a, b);
 #define MOTOR4_SET_COMPARE(a, b)	TIM_SetCompare3(a, b);
 
-#define MOTOR_MULT	(MOTOR_TIM_PERIOD / 256)
+#define MOTOR_MULT	(MOTOR_TIM_PERIOD / 100)
 
 /* Create a quick boolean type */
 typedef int boolean;

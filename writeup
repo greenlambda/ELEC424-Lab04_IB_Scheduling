@@ -7,15 +7,28 @@ Part 1: 2
 
 Q1. Briefly explain the clock path from start to finish (crystal to SYSCLK), including explanations for all your major register configurations.
 
+In this 72 MHz setup, the 16 MHz external oscilator feeds into OSC_OUT/_IN and is driven to 16 MHz by the HSE oscillator. The HSE oscilator outputs to the /2 prescaler chosen by the PLLXTPRE register, outputing a 8 MHz frequency. This feeds into the PLL, chosen by the PLLSRC register, which multiplies the 8 MHz clock by 9x (chosen by PLLMUL) to output a 72 MHz clock. This 72 MHz clock feeds into the main sysclk selector SW, which feeds PLLCLK to SYSCLK (instead of say the HSI).
+
+
 Part 2: 3
 
 Q2. Describe how you determined your PWM frequency.
 
+Our PWM frequency was chosen as 36 kHz because, 1) it's an easy multiple of the 72 MHz Timer Frequency, 2) it's above the audible frequency [20-20000 Hz], 3) it's low enough that the PWM is high resolution. From the 72 MHz input clock to TIM3/4, we use no prescaler value (/1), and a period count of 2000, giving a PWM period frequency of 36 kHz.
+
 Q3. Describe how you would calculate CCR1 values for motors off, %50, and %100.
+
+The CCR1 values for each PWM is calculated based on the period frequency (2000 as described above).
+For motors, off, the CCR1 value should be
+(0%/100)*2000 = 0
+For 50%
+(50%/100)*2000 = 1000
+For 100%
+(100%/100)*2000 = 2000
 
 Contribution
 
 Indicate the percentage work contributed by each partner below (should add up to 100%). Needless to say, replace PARTNER1/2 with names.
 
-<PARTNER1>: 
-<PARTNER2>: 
+Jeremy Hunt: 55%
+Christopher Buck: 45% 
